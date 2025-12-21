@@ -1,0 +1,35 @@
+# Output
+output/
+*.wav
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+
+# API keys - never commit these
+.anthropic_api_key
+*.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Logs
+*.log
+
+# Temporary
+*.tmp
+*.temp
+*.bak

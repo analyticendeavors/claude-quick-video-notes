@@ -231,10 +231,40 @@ model="claude-opus-4-20250514"
 | Problem | Solution |
 |---------|----------|
 | **FFmpeg not found** | Install via `winget install ffmpeg` (Windows) or `brew install ffmpeg` (Mac) |
+| **FFmpeg installed but not found** | See [Windows PATH Issues](#windows-path-issues) below |
+| **python: command not found** | See [Windows PATH Issues](#windows-path-issues) below |
 | **Whisper slow on first run** | Normal - downloads model (~140MB). Subsequent runs are faster |
 | **No MP4 files found** | Check `--watch-dir` path is correct and contains `.mp4` files |
 | **API key not working** | Verify at console.anthropic.com, check for extra whitespace |
 | **Out of memory** | Force CPU mode: `export CUDA_VISIBLE_DEVICES=""` |
+
+### Windows PATH Issues
+
+If you installed FFmpeg via `winget` or Python via the installer but the script still can't find them, they may not be in your PATH.
+
+**Find locations (PowerShell):**
+
+```powershell
+# Find FFmpeg
+Get-ChildItem "$env:LOCALAPPDATA\Microsoft\WinGet\Packages" -Recurse -Filter "ffmpeg.exe" | Select-Object FullName
+
+# Find Python
+Get-ChildItem "$env:LOCALAPPDATA\Programs\Python" -Directory
+```
+
+**Add to PATH permanently (PowerShell):**
+
+```powershell
+# Add FFmpeg (adjust path to match your version)
+$ffmpegPath = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin"
+[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$ffmpegPath", "User")
+
+# Add Python (adjust version number)
+$pythonPath = "$env:LOCALAPPDATA\Programs\Python\Python313"
+[Environment]::SetEnvironmentVariable("Path", [Environment]::GetEnvironmentVariable("Path", "User") + ";$pythonPath;$pythonPath\Scripts", "User")
+```
+
+**Restart your terminal** after modifying PATH for changes to take effect.
 
 ---
 

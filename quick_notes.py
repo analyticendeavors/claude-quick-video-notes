@@ -28,9 +28,49 @@ POINTING_WORDS = [
 ]
 
 
+def find_ffmpeg_windows() -> str | None:
+    """Try to find FFmpeg in common Windows installation locations."""
+    if sys.platform != "win32":
+        return None
+
+    local_appdata = os.environ.get("LOCALAPPDATA", "")
+    if not local_appdata:
+        return None
+
+    # Check WinGet packages folder for FFmpeg
+    winget_packages = Path(local_appdata) / "Microsoft" / "WinGet" / "Packages"
+    if winget_packages.exists():
+        for ffmpeg_dir in winget_packages.glob("*FFmpeg*/**/bin"):
+            ffmpeg_exe = ffmpeg_dir / "ffmpeg.exe"
+            if ffmpeg_exe.exists():
+                return str(ffmpeg_dir)
+
+    # Check common installation paths
+    common_paths = [
+        Path(local_appdata) / "Programs" / "ffmpeg" / "bin",
+        Path("C:/ffmpeg/bin"),
+        Path("C:/Program Files/ffmpeg/bin"),
+    ]
+    for path in common_paths:
+        if (path / "ffmpeg.exe").exists():
+            return str(path)
+
+    return None
+
+
 def check_ffmpeg() -> bool:
-    """Check if FFmpeg is available in PATH."""
-    return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+    """Check if FFmpeg is available in PATH or common locations."""
+    if shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None:
+        return True
+
+    # Try to find FFmpeg in common Windows locations
+    ffmpeg_path = find_ffmpeg_windows()
+    if ffmpeg_path:
+        # Add to PATH for this session
+        os.environ["PATH"] = ffmpeg_path + os.pathsep + os.environ.get("PATH", "")
+        return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+
+    return False
 
 
 def get_latest_mp4(folder: str) -> Path:
@@ -358,6 +398,8 @@ Requirements:
     if not check_ffmpeg():
         print("ERROR: FFmpeg not found in PATH")
         print("Install: winget install ffmpeg (Windows) or brew install ffmpeg (Mac)")
+        if sys.platform == "win32":
+            print("If already installed, see README.md 'Windows PATH Issues' section")
         sys.exit(1)
 
     # Determine video path

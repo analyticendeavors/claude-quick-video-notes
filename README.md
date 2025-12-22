@@ -113,21 +113,48 @@ Two UI changes needed: make submit button blue and center the header.
 
 For zero-click automation with [Claude Code](https://claude.com/claude-code):
 
-Add to `~/.claude/settings.json`:
+### Step 1: Add Permission
+
+Add to `~/.claude/settings.json` (or `%USERPROFILE%\.claude\settings.json` on Windows):
 
 ```json
 {
   "permissions": {
     "allow": [
-      "Bash(python /path/to/quick_notes.py:*)"
+      "Bash(powershell -Command:*)"
     ]
   }
 }
 ```
 
-Then just say: *"Run quick_notes.py --watch-dir ~/Videos and create a plan from the output"*
+### Step 2: Use This Exact Prompt
 
-The script runs automatically, Claude sees the output, and creates your plan.
+**Windows users** - Copy this prompt template and customize the paths:
+
+```
+Run quick_notes.py to process the latest video and create a todo list from the issues found.
+
+Use this exact PowerShell command:
+powershell -Command "& 'C:/Users/YOURUSERNAME/AppData/Local/Programs/Python/Python313/python.exe' 'C:/path/to/quick_notes.py' --watch-dir 'C:/path/to/your/videos'"
+
+After the script completes, use the output to create a todo list of issues to fix.
+```
+
+**Mac/Linux users** - Simpler prompt works:
+
+```
+Run python /path/to/quick_notes.py --watch-dir ~/Videos and create a todo list from the output
+```
+
+### Why the Explicit Command?
+
+Windows paths with spaces (like `OneDrive - Company Name`) break when using `cmd`. PowerShell with single quotes handles these correctly. The explicit prompt ensures Claude Code runs the right command on the first try without trial and error.
+
+### Example Workflow
+
+1. Record a screen video with Snagit/OBS/etc while talking through issues
+2. Paste the prompt into Claude Code
+3. Script processes video → Claude creates todo list → You start fixing issues
 
 ---
 

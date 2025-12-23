@@ -154,7 +154,23 @@ python /path/to/quick_notes.py --watch-dir ~/Videos
 2. Create a todo list from the issues found
 ```
 
-**Step 3: Update paths in SKILL.md** to match your system.
+**Step 3: Update paths in SKILL.md** to match your system:
+
+| Path | What to change it to |
+|------|---------------------|
+| `C:/path/to/quick_notes.py` | Where you cloned/downloaded this repo |
+| `C:/path/to/videos` | Your screen recorder's output folder (see below) |
+
+**Common screen recorder video locations:**
+
+| Recorder | Default Location |
+|----------|-----------------|
+| **Snagit** | `C:/Users/USERNAME/Videos/Snagit` or `Documents/Snagit` |
+| **OBS Studio** | `C:/Users/USERNAME/Videos` |
+| **ShareX** | `C:/Users/USERNAME/Documents/ShareX/Screenshots` |
+| **Windows Game Bar** | `C:/Users/USERNAME/Videos/Captures` |
+| **Mac QuickTime** | `~/Desktop` or `~/Movies` |
+| **Linux (SimpleScreenRecorder)** | `~/Videos` |
 
 **Step 4: Use it!** Just tell Claude:
 

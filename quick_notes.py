@@ -22,10 +22,29 @@ from datetime import datetime
 
 # Words that indicate pointing - extract frame at these moments
 POINTING_WORDS = [
+    # Demonstratives
     "this", "that", "here", "there", "these", "those",
-    "look", "see", "notice", "button", "color", "element",
-    "right here", "over here", "this one", "that one"
+    "right here", "over here", "this one", "that one",
+    # Attention words
+    "look", "see", "notice", "check", "watch",
+    # UI elements
+    "button", "color", "element", "icon", "label", "text", "header",
+    "section", "panel", "tab", "menu", "dropdown", "field", "input",
+    # Action words (indicates something needs to change)
+    "change", "fix", "update", "move", "add", "remove", "delete",
+    "adjust", "modify", "replace", "swap", "resize", "align",
+    # Problem indicators
+    "wrong", "issue", "problem", "bug", "broken", "needs", "should",
+    "doesn't", "isn't", "weird", "off", "bad", "ugly", "confusing"
 ]
+
+# Frame extraction settings - scale with video duration
+MIN_FRAMES = 5            # Minimum frames to extract
+MAX_FRAMES_SHORT = 25     # Max frames for videos under 60s
+MAX_FRAMES_MEDIUM = 40    # Max frames for videos 60-180s
+MAX_FRAMES_LONG = 60      # Max frames for videos over 180s
+CONTINUOUS_INTERVAL = 4   # Also sample every N seconds to ensure coverage
+DEDUP_THRESHOLD = 1.5     # Deduplicate frames within this window (seconds)
 
 
 def find_ffmpeg_windows() -> str | None:
@@ -140,20 +159,56 @@ def find_pointing_moments(words_with_times: list) -> list:
                 moments.append({
                     "timestamp": word_info["start"],
                     "word": word,
-                    "context": context.strip()
+                    "context": context.strip(),
+                    "source": "keyword"
                 })
                 break
 
-    # Deduplicate moments within 2 seconds
+    # Deduplicate moments within threshold
     if not moments:
         return []
 
     deduped = [moments[0]]
     for m in moments[1:]:
-        if m["timestamp"] - deduped[-1]["timestamp"] > 2.0:
+        if m["timestamp"] - deduped[-1]["timestamp"] > DEDUP_THRESHOLD:
             deduped.append(m)
 
     return deduped
+
+
+def get_max_frames(duration: float) -> int:
+    """Get maximum frames based on video duration."""
+    if duration < 60:
+        return MAX_FRAMES_SHORT
+    elif duration < 180:
+        return MAX_FRAMES_MEDIUM
+    else:
+        return MAX_FRAMES_LONG
+
+
+def generate_continuous_samples(duration: float, existing_moments: list) -> list:
+    """Generate continuous frame samples to ensure nothing is missed.
+
+    Fills gaps between pointing moments and ensures regular coverage.
+    """
+    samples = []
+    existing_times = {m["timestamp"] for m in existing_moments}
+
+    # Sample every CONTINUOUS_INTERVAL seconds
+    current_time = 0.5  # Start slightly into the video
+    while current_time < duration - 0.5:
+        # Check if we already have a frame near this time
+        has_nearby = any(abs(t - current_time) < DEDUP_THRESHOLD for t in existing_times)
+        if not has_nearby:
+            samples.append({
+                "timestamp": current_time,
+                "word": "",
+                "context": "[continuous sample]",
+                "source": "continuous"
+            })
+        current_time += CONTINUOUS_INTERVAL
+
+    return samples
 
 
 def extract_frame_at_time(video_path: Path, timestamp: float, output_path: Path) -> bool:
@@ -217,27 +272,46 @@ FULL TRANSCRIPT:
 
 ---
 
-You just saw {len(frames)} screenshots from a screen recording where the user pointed at UI elements while talking.
+You just saw {len(frames)} screenshots from a screen recording where the user pointed at UI elements while talking about changes they want.
 
 Create a structured task list. For each issue:
-1. What UI element they pointed at (be specific: button name, location, color)
+1. What UI element they pointed at (be specific: button name, location, color, text)
 2. What change they want
-3. Any specific values mentioned (colors, sizes, etc.)
+3. Any specific values mentioned (colors, sizes, spacing, etc.)
 
 Format as markdown:
 
 ## Issues Found
 
 ### 1. [Short title]
-- **Element**: [what they pointed at]
-- **Location**: [where on screen]
-- **Issue**: [what's wrong]
-- **Fix**: [what to do]
+- **Element**: [what they pointed at - be specific]
+- **Location**: [where on screen - top/bottom, left/right, which section/panel]
+- **Current State**: [what it looks like now]
+- **Requested Change**: [what they want it to become]
+- **Specific Values**: [any colors, sizes, spacing mentioned, or "None specified"]
 
 (repeat for each issue)
 
+## Clarifying Questions
+
+If anything is unclear or ambiguous, list specific questions here. For example:
+- "You mentioned 'make this bigger' but didn't specify a size - what dimensions?"
+- "The button color change - did you mean the background or the text?"
+- "Should this change apply everywhere or just this specific instance?"
+
+If everything is clear, write "None - all requirements are clear."
+
+## Complexity Assessment
+
+Rate the overall task complexity and recommend an approach:
+- **Simple** (1-3 quick fixes): Proceed directly with implementation
+- **Medium** (4-8 changes, single file/area): Brief planning, then implement
+- **Complex** (9+ changes, multiple files, architectural): **Recommend Plan Mode** - create implementation plan before coding
+
+**Recommendation**: [Simple/Medium/Complex] - [Brief rationale]
+
 ## Summary
-[1-2 sentence overview of all changes needed]
+[2-3 sentence overview of all changes needed and suggested implementation order]
 """
     })
 
@@ -245,7 +319,7 @@ Format as markdown:
 
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=2000,
+        max_tokens=4000,
         messages=[{"role": "user", "content": content}]
     )
 
@@ -286,28 +360,47 @@ def process_video(video_path: Path, output_dir: Path) -> dict:
 
     print(f"Transcript: {len(transcript)} chars, {len(words_with_times)} words")
 
-    # Find pointing moments
-    moments = find_pointing_moments(words_with_times)
-    print(f"Found {len(moments)} pointing moments")
+    # Find pointing moments from keywords
+    keyword_moments = find_pointing_moments(words_with_times)
+    print(f"Found {len(keyword_moments)} keyword-triggered moments")
 
-    # Fallback: sample evenly if few pointing words detected
-    if len(moments) < 3:
-        print("Few pointing words detected, sampling frames evenly...")
-        num_samples = min(10, max(3, int(duration / 10)))
-        moments = [
-            {"timestamp": i * duration / num_samples, "context": "[sampled frame]", "word": ""}
-            for i in range(num_samples)
-        ]
+    # Generate continuous samples to fill gaps and ensure coverage
+    continuous_samples = generate_continuous_samples(duration, keyword_moments)
+    print(f"Generated {len(continuous_samples)} continuous samples")
 
-    # Extract frames at pointing moments (max 15)
+    # Combine and sort all moments by timestamp
+    all_moments = keyword_moments + continuous_samples
+    all_moments.sort(key=lambda m: m["timestamp"])
+
+    # Determine max frames based on duration
+    max_frames = get_max_frames(duration)
+    print(f"Max frames for {duration:.0f}s video: {max_frames}")
+
+    # If we have too many moments, prioritize keyword moments
+    if len(all_moments) > max_frames:
+        # Keep all keyword moments, then fill with continuous samples
+        keyword_count = len(keyword_moments)
+        if keyword_count >= max_frames:
+            # Too many keywords - just use keyword moments evenly distributed
+            all_moments = sorted(keyword_moments, key=lambda m: m["timestamp"])[:max_frames]
+        else:
+            # Use all keywords + some continuous samples
+            remaining_slots = max_frames - keyword_count
+            continuous_samples = continuous_samples[:remaining_slots]
+            all_moments = keyword_moments + continuous_samples
+            all_moments.sort(key=lambda m: m["timestamp"])
+
+    # Extract frames
     frames = []
-    for i, moment in enumerate(moments[:15]):
-        frame_path = frames_dir / f"frame_{i:02d}_t{moment['timestamp']:.1f}s.jpg"
+    for i, moment in enumerate(all_moments[:max_frames]):
+        source_tag = moment.get("source", "keyword")[:1].upper()  # K or C
+        frame_path = frames_dir / f"frame_{i:02d}_{source_tag}_t{moment['timestamp']:.1f}s.jpg"
         if extract_frame_at_time(video_path, moment["timestamp"], frame_path):
             frames.append({
                 "path": str(frame_path),
                 "timestamp": moment["timestamp"],
-                "context": moment["context"]
+                "context": moment["context"],
+                "source": moment.get("source", "keyword")
             })
 
     print(f"Extracted {len(frames)} frames")

@@ -479,10 +479,12 @@ Requirements:
         "-w", "--watch-dir",
         help="Folder to find latest MP4 from (used if no video specified)"
     )
+    # Default output to script's directory, not current working directory
+    script_dir = Path(__file__).parent
     parser.add_argument(
         "-o", "--output-dir",
-        default="./output",
-        help="Output directory for notes (default: ./output)"
+        default=str(script_dir / "output"),
+        help="Output directory for notes (default: ./output relative to script)"
     )
 
     args = parser.parse_args()

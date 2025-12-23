@@ -15,7 +15,8 @@ env/
 *.env
 .env.local
 
-# IDE
+# IDE & AI tools
+.claude/
 .vscode/
 .idea/
 *.swp
@@ -27,6 +28,7 @@ Thumbs.db
 Desktop.ini
 
 # Logs
+logs/
 *.log
 
 # Temporary

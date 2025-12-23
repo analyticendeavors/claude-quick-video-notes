@@ -113,7 +113,87 @@ Two UI changes needed: make submit button blue and center the header.
 
 For zero-click automation with [Claude Code](https://claude.com/claude-code):
 
-### Step 1: Add Permission
+### Option A: Install as a Skill (Recommended)
+
+Skills let Claude automatically know how to use this tool. Once installed, just say "process my video" and Claude handles the rest.
+
+**Step 1: Create the skill folder**
+
+```bash
+# Windows
+mkdir %USERPROFILE%\.claude\skills\quick-video-notes
+
+# Mac/Linux
+mkdir -p ~/.claude/skills/quick-video-notes
+```
+
+**Step 2: Create the skill file**
+
+Create `SKILL.md` in that folder with this content:
+
+```yaml
+---
+name: quick-video-notes
+description: Process screen recording videos to extract action items. Use when user mentions video notes, screen recording processing, video transcription, or wants to turn a video into a task list.
+---
+
+# Quick Video Notes
+
+Process screen recordings into structured action plans.
+
+## How to Run
+
+**Windows:**
+powershell -Command "python 'C:/path/to/quick_notes.py' --watch-dir 'C:/path/to/videos'"
+
+**Mac/Linux:**
+python /path/to/quick_notes.py --watch-dir ~/Videos
+
+## After Processing
+1. Read the script output
+2. Create a todo list from the issues found
+```
+
+**Step 3: Update paths in SKILL.md** to match your system.
+
+**Step 4: Use it!** Just tell Claude:
+
+```
+Process my latest video and create a todo list
+```
+
+Or even simpler:
+
+```
+Video notes please
+```
+
+Claude will automatically use the skill when it matches the description.
+
+---
+
+### Option B: Manual Prompt (No Skill)
+
+If you prefer not to use skills, use this explicit prompt:
+
+**Windows users:**
+
+```
+Run quick_notes.py to process the latest video and create a todo list from the issues found.
+
+Use this exact PowerShell command:
+powershell -Command "python 'C:/path/to/quick_notes.py' --watch-dir 'C:/path/to/videos'"
+
+After the script completes, use the output to create a todo list of issues to fix.
+```
+
+**Mac/Linux users:**
+
+```
+Run python /path/to/quick_notes.py --watch-dir ~/Videos and create a todo list from the output
+```
+
+### Permission Setup
 
 Add to `~/.claude/settings.json` (or `%USERPROFILE%\.claude\settings.json` on Windows):
 
@@ -127,34 +207,11 @@ Add to `~/.claude/settings.json` (or `%USERPROFILE%\.claude\settings.json` on Wi
 }
 ```
 
-### Step 2: Use This Exact Prompt
-
-**Windows users** - Copy this prompt template and customize the paths:
-
-```
-Run quick_notes.py to process the latest video and create a todo list from the issues found.
-
-Use this exact PowerShell command:
-powershell -Command "& 'C:/Users/YOURUSERNAME/AppData/Local/Programs/Python/Python313/python.exe' 'C:/path/to/quick_notes.py' --watch-dir 'C:/path/to/your/videos'"
-
-After the script completes, use the output to create a todo list of issues to fix.
-```
-
-**Mac/Linux users** - Simpler prompt works:
-
-```
-Run python /path/to/quick_notes.py --watch-dir ~/Videos and create a todo list from the output
-```
-
-### Why the Explicit Command?
-
-Windows paths with spaces (like `OneDrive - Company Name`) break when using `cmd`. PowerShell with single quotes handles these correctly. The explicit prompt ensures Claude Code runs the right command on the first try without trial and error.
-
 ### Example Workflow
 
 1. Record a screen video with Snagit/OBS/etc while talking through issues
-2. Paste the prompt into Claude Code
-3. Script processes video → Claude creates todo list → You start fixing issues
+2. Tell Claude: "Process my latest video and create a todo list"
+3. Script processes video -> Claude creates todo list -> You start fixing issues
 
 ---
 

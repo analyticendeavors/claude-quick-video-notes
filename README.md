@@ -94,18 +94,42 @@ python quick_notes.py video.mp4 -o ./notes
 ### 1. Button Color Change
 - **Element**: "Submit" button
 - **Location**: Bottom right of form
-- **Issue**: Currently gray, hard to see
-- **Fix**: Change to blue (#0066CC)
+- **Current State**: Currently gray, hard to see
+- **Requested Change**: Change to blue (#0066CC)
 
 ### 2. Text Alignment
 - **Element**: Header text
 - **Location**: Top of page
-- **Issue**: Left-aligned, looks off-center
-- **Fix**: Center-align the header
+- **Current State**: Left-aligned, looks off-center
+- **Requested Change**: Center-align the header
 
-## Summary
-Two UI changes needed: make submit button blue and center the header.
+...
+
+## Chat Plans
+
+### Chat 1: Form Styling
+**Focus area**: Form component layout and button styles
+**Issues**: #1, #2
+**Dependencies**: None
+
+**Prompt to paste into Claude Code:**
+‍```
+I need to make the following changes to the form component:
+
+1. The "Submit" button (bottom right of form) is currently gray and hard to see.
+   Change its background color to blue (#0066CC).
+
+2. The header text at the top of the page is left-aligned and looks off-center.
+   Center-align it.
+
+Please implement these changes. After completing each one, briefly confirm what was done.
+‍```
+
+### Execution Order
+1. Chat 1 (no dependencies)
 ```
+
+For complex videos (9+ issues), the output automatically groups related changes into separate chat plans. Each plan includes a self-contained prompt you can paste directly into a new Claude Code session -- no context from the original session needed.
 
 ---
 

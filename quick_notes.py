@@ -310,6 +310,38 @@ Rate the overall task complexity and recommend an approach:
 
 **Recommendation**: [Simple/Medium/Complex] - [Brief rationale]
 
+## Chat Plans
+
+Break all issues into logical groups that can each be handled by a separate Claude Code session. This prevents context loss from overloading a single chat.
+
+**Grouping rules:**
+- Group by area/section/component of the UI or codebase
+- Keep tightly related changes together (dependencies, shared files)
+- Each group should be independently actionable
+- Aim for 3-6 issues per group maximum
+- Simple tasks (1-3 total issues) = 1 chat, no splitting needed
+
+For EACH chat group, produce a self-contained block formatted exactly like this:
+
+### Chat [N]: [Descriptive Group Name]
+**Focus area**: [which section/component/files this covers]
+**Issues**: #[list the issue numbers from above]
+**Dependencies**: [any other chat groups that should be completed first, or "None"]
+
+**Prompt to paste into Claude Code:**
+```
+I need to make the following changes to [project/area]. Here is the context from a video review:
+
+[For each issue in this group, restate it concisely with all specific details - element, location, current state, requested change, and any specific values. Do NOT just reference issue numbers - the other Claude session has no context about those numbers. Include full details.]
+
+Please implement these changes. After completing each one, briefly confirm what was done.
+```
+
+(Repeat for each chat group)
+
+### Execution Order
+List the recommended order to run the chats, noting which can run in parallel vs which depend on earlier chats completing first.
+
 ## Summary
 [2-3 sentence overview of all changes needed and suggested implementation order]
 """
@@ -319,7 +351,7 @@ Rate the overall task complexity and recommend an approach:
 
     response = client.messages.create(
         model="claude-sonnet-4-20250514",
-        max_tokens=4000,
+        max_tokens=8000,
         messages=[{"role": "user", "content": content}]
     )
 
